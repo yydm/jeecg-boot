@@ -11,9 +11,12 @@ import java.util.Date;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
+import org.apache.shiro.SecurityUtils;
 import org.jeecg.common.constant.DataBaseConstant;
 import org.jeecg.common.exception.JeecgBootException;
+import org.jeecg.common.system.vo.LoginUser;
 import org.jeecg.common.system.vo.SysUserCacheInfo;
+import org.jeecg.common.util.DateUtils;
 import org.jeecg.common.util.SpringContextUtils;
 import org.jeecg.common.util.oConvertUtils;
 
@@ -24,7 +27,7 @@ import org.jeecg.common.util.oConvertUtils;
  **/
 public class JwtUtil {
 
-	// 过期时间30分钟
+	// Token过期时间30分钟（用户登录过期时间是此时间的两倍，以token在reids缓存时间为准）
 	public static final long EXPIRE_TIME = 30 * 60 * 1000;
 
 	/**
@@ -123,11 +126,16 @@ public class JwtUtil {
 	 * @param user
 	 * @return
 	 */
+	//TODO 急待改造 sckjkdsjsfjdk
 	public static String getUserSystemData(String key,SysUserCacheInfo user) {
 		if(user==null) {
 			user = JeecgDataAutorUtils.loadUserInfo();
 		}
 		//#{sys_user_code}%
+		
+		// 获取登录用户信息
+		LoginUser sysUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+		
 		String moshi = "";
 		if(key.indexOf("}")!=-1){
 			 moshi = key.substring(key.indexOf("}")+1);
@@ -140,39 +148,61 @@ public class JwtUtil {
 			key = key;
 		}
 		//替换为系统登录用户帐号
-		if (key.equals(DataBaseConstant.SYS_USER_CODE)|| key.equals(DataBaseConstant.SYS_USER_CODE_TABLE)) {
-			returnValue = user.getSysUserCode();
+		if (key.equals(DataBaseConstant.SYS_USER_CODE)|| key.toLowerCase().equals(DataBaseConstant.SYS_USER_CODE_TABLE)) {
+			if(user==null) {
+				returnValue = sysUser.getUsername();
+			}else {
+				returnValue = user.getSysUserCode();
+			}
 		}
 		//替换为系统登录用户真实名字
-		if (key.equals(DataBaseConstant.SYS_USER_NAME)|| key.equals(DataBaseConstant.SYS_USER_NAME_TABLE)) {
-			returnValue = user.getSysUserName();
+		else if (key.equals(DataBaseConstant.SYS_USER_NAME)|| key.toLowerCase().equals(DataBaseConstant.SYS_USER_NAME_TABLE)) {
+			if(user==null) {
+				returnValue = sysUser.getRealname();
+			}else {
+				returnValue = user.getSysUserName();
+			}
 		}
 		
 		//替换为系统用户登录所使用的机构编码
-		if (key.equals(DataBaseConstant.SYS_ORG_CODE)|| key.equals(DataBaseConstant.SYS_ORG_CODE_TABLE)) {
-			returnValue = user.getSysOrgCode();
+		else if (key.equals(DataBaseConstant.SYS_ORG_CODE)|| key.toLowerCase().equals(DataBaseConstant.SYS_ORG_CODE_TABLE)) {
+			if(user==null) {
+				returnValue = sysUser.getOrgCode();
+			}else {
+				returnValue = user.getSysOrgCode();
+			}
 		}
 		//替换为系统用户所拥有的所有机构编码
-		if (key.equals(DataBaseConstant.SYS_MULTI_ORG_CODE)|| key.equals(DataBaseConstant.SYS_MULTI_ORG_CODE)) {
-			if(user.isOneDepart()) {
-				returnValue = user.getSysMultiOrgCode().get(0);
-			}else {
-				returnValue = Joiner.on(",").join(user.getSysMultiOrgCode());
+		else if (key.equals(DataBaseConstant.SYS_MULTI_ORG_CODE)|| key.toLowerCase().equals(DataBaseConstant.SYS_MULTI_ORG_CODE_TABLE)) {
+			if(user==null){
+				//TODO 暂时使用用户登录部门，存在逻辑缺陷，不是用户所拥有的部门
+				returnValue = sysUser.getOrgCode();
+			}else{
+				if(user.isOneDepart()) {
+					returnValue = user.getSysMultiOrgCode().get(0);
+				}else {
+					returnValue = Joiner.on(",").join(user.getSysMultiOrgCode());
+				}
 			}
 		}
 		//替换为当前系统时间(年月日)
-		if (key.equals(DataBaseConstant.SYS_DATE)|| key.equals(DataBaseConstant.SYS_DATE_TABLE)) {
-			returnValue = user.getSysDate();
+		else if (key.equals(DataBaseConstant.SYS_DATE)|| key.toLowerCase().equals(DataBaseConstant.SYS_DATE_TABLE)) {
+			returnValue = DateUtils.formatDate();
 		}
 		//替换为当前系统时间（年月日时分秒）
-		if (key.equals(DataBaseConstant.SYS_TIME)|| key.equals(DataBaseConstant.SYS_TIME_TABLE)) {
-			returnValue = user.getSysTime();
+		else if (key.equals(DataBaseConstant.SYS_TIME)|| key.toLowerCase().equals(DataBaseConstant.SYS_TIME_TABLE)) {
+			returnValue = DateUtils.now();
 		}
 		//流程状态默认值（默认未发起）
-		if (key.equals(DataBaseConstant.BPM_STATUS_TABLE)|| key.equals(DataBaseConstant.BPM_STATUS_TABLE)) {
+		else if (key.equals(DataBaseConstant.BPM_STATUS)|| key.toLowerCase().equals(DataBaseConstant.BPM_STATUS_TABLE)) {
 			returnValue = "1";
 		}
 		if(returnValue!=null){returnValue = returnValue + moshi;}
 		return returnValue;
+	}
+	
+	public static void main(String[] args) {
+		 String token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1NjUzMzY1MTMsInVzZXJuYW1lIjoiYWRtaW4ifQ.xjhud_tWCNYBOg_aRlMgOdlZoWFFKB_givNElHNw3X0";
+		 System.out.println(JwtUtil.getUsername(token));
 	}
 }

@@ -2,10 +2,10 @@ package org.jeecg.common.api.vo;
 
 import java.io.Serializable;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import org.jeecg.common.constant.CommonConstant;
-
 import lombok.Data;
 
 /**
@@ -43,10 +43,6 @@ public class Result<T> implements Serializable {
 	 */
 	@ApiModelProperty(value = "返回数据对象")
 	private T result;
-
-	public Result() {
-		
-	}
 	
 	/**
 	 * 时间戳
@@ -54,16 +50,67 @@ public class Result<T> implements Serializable {
 	@ApiModelProperty(value = "时间戳")
 	private long timestamp = System.currentTimeMillis();
 
-	public void error500(String message) {
-		this.message = message;
-		this.code = CommonConstant.SC_INTERNAL_SERVER_ERROR_500;
-		this.success = false;
+	public Result() {
+		
 	}
-
-	public void success(String message) {
+	
+	public Result<T> success(String message) {
 		this.message = message;
 		this.code = CommonConstant.SC_OK_200;
 		this.success = true;
+		return this;
+	}
+
+	@Deprecated
+	public static Result<Object> ok() {
+		Result<Object> r = new Result<Object>();
+		r.setSuccess(true);
+		r.setCode(CommonConstant.SC_OK_200);
+		r.setMessage("成功");
+		return r;
+	}
+
+	@Deprecated
+	public static Result<Object> ok(String msg) {
+		Result<Object> r = new Result<Object>();
+		r.setSuccess(true);
+		r.setCode(CommonConstant.SC_OK_200);
+		r.setMessage(msg);
+		return r;
+	}
+
+	@Deprecated
+	public static Result<Object> ok(Object data) {
+		Result<Object> r = new Result<Object>();
+		r.setSuccess(true);
+		r.setCode(CommonConstant.SC_OK_200);
+		r.setResult(data);
+		return r;
+	}
+
+	public static<T> Result<T> OK() {
+		Result<T> r = new Result<T>();
+		r.setSuccess(true);
+		r.setCode(CommonConstant.SC_OK_200);
+		r.setMessage("成功");
+		return r;
+	}
+
+	public static<T> Result<T> OK(T data) {
+		Result<T> r = new Result<T>();
+		r.setSuccess(true);
+		r.setCode(CommonConstant.SC_OK_200);
+		r.setResult(data);
+		return r;
+	}
+
+	public static<T> Result<T> OK(String msg, T data) {
+		Result<T> r = new Result<T>();
+		r.setSuccess(true);
+		r.setCode(CommonConstant.SC_OK_200);
+		r.setMessage(msg);
+		r.setResult(data);
+		return r;
 	}
 	
 	public static Result<Object> error(String msg) {
@@ -77,28 +124,21 @@ public class Result<T> implements Serializable {
 		r.setSuccess(false);
 		return r;
 	}
-	
-	public static Result<Object> ok() {
-		Result<Object> r = new Result<Object>();
-		r.setSuccess(true);
-		r.setCode(CommonConstant.SC_OK_200);
-		r.setMessage("成功");
-		return r;
+
+	public Result<T> error500(String message) {
+		this.message = message;
+		this.code = CommonConstant.SC_INTERNAL_SERVER_ERROR_500;
+		this.success = false;
+		return this;
 	}
-	
-	public static Result<Object> ok(String msg) {
-		Result<Object> r = new Result<Object>();
-		r.setSuccess(true);
-		r.setCode(CommonConstant.SC_OK_200);
-		r.setMessage(msg);
-		return r;
+	/**
+	 * 无权限访问返回结果
+	 */
+	public static Result<Object> noauth(String msg) {
+		return error(CommonConstant.SC_JEECG_NO_AUTHZ, msg);
 	}
-	
-	public static Result<Object> ok(Object data) {
-		Result<Object> r = new Result<Object>();
-		r.setSuccess(true);
-		r.setCode(CommonConstant.SC_OK_200);
-		r.setResult(data);
-		return r;
-	}
+
+	@JsonIgnore
+	private String onlTable;
+
 }

@@ -13,7 +13,7 @@ public class SysUserDepart implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	/**主键id*/
-    @TableId(type = IdType.UUID)
+    @TableId(type = IdType.ASSIGN_ID)
 	private String id;
 	/**用户id*/
 	private String userId;
@@ -25,5 +25,9 @@ public class SysUserDepart implements Serializable {
 		this.userId = userId;
 		this.depId = depId;
 	}
-	
+
+	public SysUserDepart(String id, String departId) {
+		this.userId = id;
+		this.depId = departId;
+	}
 }

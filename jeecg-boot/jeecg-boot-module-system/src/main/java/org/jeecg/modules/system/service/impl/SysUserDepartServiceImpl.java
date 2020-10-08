@@ -2,13 +2,16 @@ package org.jeecg.modules.system.service.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Collectors;
 
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import org.jeecg.common.util.oConvertUtils;
 import org.jeecg.modules.system.entity.SysDepart;
 import org.jeecg.modules.system.entity.SysUser;
 import org.jeecg.modules.system.entity.SysUserDepart;
 import org.jeecg.modules.system.mapper.SysUserDepartMapper;
 import org.jeecg.modules.system.model.DepartIdModel;
-import org.jeecg.modules.system.model.SysUserDepartsVO;
 import org.jeecg.modules.system.service.ISysDepartService;
 import org.jeecg.modules.system.service.ISysUserDepartService;
 import org.jeecg.modules.system.service.ISysUserService;
@@ -32,31 +35,6 @@ public class SysUserDepartServiceImpl extends ServiceImpl<SysUserDepartMapper, S
 	@Autowired
 	private ISysUserService sysUserService;
 	
-	/**
-	 *根据用户id添加部门信息
-	 */
-	@Override
-	public boolean addSysUseWithrDepart(SysUserDepartsVO sysUserDepartsVO) {
-		LambdaQueryWrapper<SysUserDepart> query = new LambdaQueryWrapper<SysUserDepart>();
-		if(sysUserDepartsVO != null) {
-			String userId = sysUserDepartsVO.getUserId();
-			List<String> departIdList = sysUserDepartsVO.getDepartIdList();
-			if(departIdList != null && departIdList.size() > 0) {
-				for(String depId : departIdList) {
-					query.eq(SysUserDepart::getDepId, depId);
-					query.eq(SysUserDepart::getUserId, userId);
-					List<SysUserDepart> uDepList = this.list(query);
-					if(uDepList == null || uDepList.size() == 0) {
-						this.save(new SysUserDepart("",userId,depId));
-					}
-				}
-			}
-			return true;
-		}else {
-			return false;
-		}
-		
-	}
 
 	/**
 	 * 根据用户id查询部门信息
@@ -91,27 +69,6 @@ public class SysUserDepartServiceImpl extends ServiceImpl<SysUserDepartMapper, S
 		
 	}
 
-	/**
-	 * 根据用户id修改部门信息
-	 */
-	@Override
-	public boolean editSysUserWithDepart(SysUserDepartsVO sysUserDepartsVO) {
-		LambdaQueryWrapper<SysUserDepart> queryDep = new LambdaQueryWrapper<SysUserDepart>();
-		List<String> depIdList = sysUserDepartsVO.getDepartIdList();
-		if(depIdList != null && depIdList.size() > 0) {
-			queryDep.eq(SysUserDepart::getUserId, sysUserDepartsVO.getUserId());	
-			boolean ok = this.remove(queryDep);
-			if(ok) {
-				for(String str : depIdList) {
-					this.save(new SysUserDepart("", sysUserDepartsVO.getUserId(), str));
-				}
-			return ok;
-			}
-		}
-		queryDep.eq(SysUserDepart::getUserId, sysUserDepartsVO.getUserId());
-		boolean ok = this.remove(queryDep);
-		return ok;
-	}
 
 	/**
 	 * 根据部门id查询用户信息
@@ -127,6 +84,41 @@ public class SysUserDepartServiceImpl extends ServiceImpl<SysUserDepartMapper, S
 				userIdList.add(uDep.getUserId());
 			}
 			List<SysUser> userList = (List<SysUser>) sysUserService.listByIds(userIdList);
+			//update-begin-author:taoyan date:201905047 for:接口调用查询返回结果不能返回密码相关信息
+			for (SysUser sysUser : userList) {
+				sysUser.setSalt("");
+				sysUser.setPassword("");
+			}
+			//update-end-author:taoyan date:201905047 for:接口调用查询返回结果不能返回密码相关信息
+			return userList;
+		}
+		return new ArrayList<SysUser>();
+	}
+
+	/**
+	 * 根据部门code，查询当前部门和下级部门的 用户信息
+	 */
+	@Override
+	public List<SysUser> queryUserByDepCode(String depCode,String realname) {
+		LambdaQueryWrapper<SysDepart> queryByDepCode = new LambdaQueryWrapper<SysDepart>();
+		queryByDepCode.likeRight(SysDepart::getOrgCode,depCode);
+		List<SysDepart> sysDepartList = sysDepartService.list(queryByDepCode);
+		List<String> depIds = sysDepartList.stream().map(SysDepart::getId).collect(Collectors.toList());
+
+		LambdaQueryWrapper<SysUserDepart> queryUDep = new LambdaQueryWrapper<SysUserDepart>();
+		queryUDep.in(SysUserDepart::getDepId, depIds);
+		List<String> userIdList = new ArrayList<>();
+		List<SysUserDepart> uDepList = this.list(queryUDep);
+		if(uDepList != null && uDepList.size() > 0) {
+			for(SysUserDepart uDep : uDepList) {
+				userIdList.add(uDep.getUserId());
+			}
+			LambdaQueryWrapper<SysUser> queryUser = new LambdaQueryWrapper<SysUser>();
+			queryUser.in(SysUser::getId,userIdList);
+			if(oConvertUtils.isNotEmpty(realname)){
+				queryUser.like(SysUser::getRealname,realname.trim());
+			}
+			List<SysUser> userList = (List<SysUser>) sysUserService.list(queryUser);
 			//update-begin-author:taoyan date:201905047 for:接口调用查询返回结果不能返回密码相关信息
 			for (SysUser sysUser : userList) {
 				sysUser.setSalt("");

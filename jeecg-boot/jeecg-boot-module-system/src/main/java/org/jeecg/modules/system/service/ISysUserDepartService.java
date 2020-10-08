@@ -6,7 +6,7 @@ import java.util.List;
 import org.jeecg.modules.system.entity.SysUser;
 import org.jeecg.modules.system.entity.SysUserDepart;
 import org.jeecg.modules.system.model.DepartIdModel;
-import org.jeecg.modules.system.model.SysUserDepartsVO;
+
 
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -19,13 +19,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface ISysUserDepartService extends IService<SysUserDepart> {
 	
-	/**
-	 * 根据指定用户添加部门信息
-	 * @param sysUserDepartsVO
-	 * @return
-	 */
-	boolean addSysUseWithrDepart(SysUserDepartsVO sysUserDepartsVO);
-	
+
 	/**
 	 * 根据指定用户id查询部门信息
 	 * @param userId
@@ -33,17 +27,15 @@ public interface ISysUserDepartService extends IService<SysUserDepart> {
 	 */
 	List<DepartIdModel> queryDepartIdsOfUser(String userId);
 	
-	/**
-	 * 根据指定用户id编辑部门信息
-	 * @param sysUserDepartsVO
-	 * @return
-	 */
-	boolean editSysUserWithDepart(SysUserDepartsVO sysUserDepartsVO);
-	
+
 	/**
 	 * 根据部门id查询用户信息
 	 * @param depId
 	 * @return
 	 */
 	List<SysUser> queryUserByDepId(String depId);
+  	/**
+	 * 根据部门code，查询当前部门和下级部门的用户信息
+	 */
+	public List<SysUser> queryUserByDepCode(String depCode,String realname);
 }
